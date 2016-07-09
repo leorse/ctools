@@ -13,7 +13,7 @@
 #ifdef __MEMORY_DEBUG__
 
 #define __SIZE_TYPE_TAILLE__ unsigned long int
-#define __MEMORY_TAILLE_FIC 10
+#define __MEMORY_TAILLE_FIC 25
 typedef struct LBL___MEMORY_DEBUG
 {
     void* ptr;
@@ -118,6 +118,10 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
 
         }
     }
+    if(tmpFic != NULL)
+    {
+        free(tmpFic);
+    }
     return 0;
 }
 
@@ -185,7 +189,7 @@ int __tri_callback_alloc_lst(const void *element1, const void *element2)
         return 0;
     }
     retStrcmp = strcmp(elem1->fichier, elem2->fichier);
-    //si les fichiers et les lignes sont identiques, alors c'est une allocation au même endroit
+    //si les fichiers et les lignes sont identiques, alors c'est une allocation au mÃªme endroit
     if(retStrcmp < 0)
     {
         return 1;
@@ -202,7 +206,7 @@ int __tri_callback_alloc_lst(const void *element1, const void *element2)
         }
         if(elem1->ligne != elem2->ligne)
         {
-            //on renvoie 1 si ligne1 est supérieur à ligne2
+            //on renvoie 1 si ligne1 est supÃ©rieur Ã  ligne2
             return elem1->ligne > elem2->ligne ? 1 : -1;
         }
     }
@@ -223,7 +227,7 @@ void __tri_alloc_lst()
 #define __TRACE_ALLOC() __trace_alloc_lst();
 /** \brief fonction qui affiche le contenu de la liste d'allocation
  *  sous forme d'un tableau
- *  chaque ligne du tableau est la somme de toutes les allocations d'une même ligne de code
+ *  chaque ligne du tableau est la somme de toutes les allocations d'une mÃªme ligne de code
  *
  * \return void
  *
@@ -301,6 +305,7 @@ void __trace_alloc_lst()
                 if((inc + 1) != __alloc_memory_max && __alloc_lst[inc + 1].ptr != NULL)
                 {
                     ligne_prec = __alloc_lst[inc + 1].ligne;
+                    strcpy(fichier_prec, __alloc_lst[inc + 1].fichier);
                 }
                 else
                 {

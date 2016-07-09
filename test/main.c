@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         printf("      str:%d\n", ptr2->i);
         ptr2 = ptr2->precedent;
     }*/
-    __MALLOC(15);
+   /* __MALLOC(15);
     __MALLOC(55);
     __MALLOC(65);
     __MALLOC(25);
@@ -65,8 +65,10 @@ int main(int argc, char **argv)
     __MALLOC(200);
     __MALLOC(200);
     __MALLOC(200);
-    __MALLOC(200);
-
+    __MALLOC(16);
+    __MALLOC(200);__MALLOC(168);__MALLOC(150);
+    __MALLOC(15);
+*/
     __TRACE_ALLOC()
     __CLEAR_MEMORY_REGISTER
 
