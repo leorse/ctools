@@ -1,0 +1,10 @@
+*.exe
+ctools.cbp
+*.o
+ctools.depend
+ctools.layout
+ctools.mk
+ctools.project
+ctools.txt
+Debug/.d
+Debug/test_main.c.o.d
