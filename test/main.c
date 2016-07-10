@@ -35,9 +35,10 @@ void initElmt(TYP_STR** lst)
 int main(int argc, char **argv)
 {
     TYP_STR* mon_premier;
+    char* liste = NULL;
     // TYP_STR* ptr, *ptr2;
 
-    initElmt(&mon_premier);
+    //initElmt(&mon_premier);
 
     /*printf("Premier sens\n");
     ptr = mon_premier;
@@ -69,6 +70,10 @@ int main(int argc, char **argv)
     __MALLOC(200);__MALLOC(168);__MALLOC(150);
     __MALLOC(15);
 */
+    liste = (char*)__MALLOC(10);
+    liste = (char*)__REALLOC(liste, 20);
+    sprintf(liste, "AZERTYUIOP1234567890");
+    __FREE(liste);
     __TRACE_ALLOC()
     __CLEAR_MEMORY_REGISTER
 

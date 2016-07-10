@@ -5,13 +5,14 @@
 #define __CTOOLS_H__
 
 
-#define __MEMORY_DEBUG__ 1
+#define __MEMORY_DEBUG__ 2
 
 
 // 1= mode sans sortie
 // 2= mode avec sortie (verbeux)
 #ifdef __MEMORY_DEBUG__
 
+#define __MEMORY_TEST_CRUSH 0x4A
 #define __SIZE_TYPE_TAILLE__ unsigned long int
 #define __MEMORY_TAILLE_FIC 25
 typedef struct LBL___MEMORY_DEBUG
@@ -42,6 +43,15 @@ char *__basename(char const *path)
         }
     }
     return strdup(s + 1);
+}
+
+
+void __vider_alloc_indice(int indice)
+{
+    if(indice<__alloc_memory_max)
+    {
+        memset(&__alloc_lst[indice], 0, sizeof(TYP___MEMORY_DEBUG));
+    }
 }
 
 int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
@@ -125,16 +135,77 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
     return 0;
 }
 
+/**
+ * @brief 
+ * @param ptr
+ * @return 
+ */
+int __avoir_alloc_indice(void* ptr)
+{
+    long inc = 0;
+    
+    while(inc < __alloc_memory_max)
+    {
+        if(__alloc_lst[inc].ptr == ptr)
+        {
+            return inc;
+        }
+        inc++;
+    }
+    return -1;
+}
+
+void __verifier_ecrasement(TYP___MEMORY_DEBUG* ptr_alloc_lst_element)
+{
+    void* ptr = ptr_alloc_lst_element->ptr;
+    char carControl = '\0';
+    __SIZE_TYPE_TAILLE__ taille = ptr_alloc_lst_element->taille;
+    int ligne = ptr_alloc_lst_element->ligne;
+    char* fichier = ptr_alloc_lst_element->fichier;
+    if(ptr != NULL)
+    {
+        carControl = *(char*)(ptr+taille);
+        if(carControl != __MEMORY_TEST_CRUSH)
+        {
+            printf("ECRASEMENT du pointeur alloué ligne %d, fichier %s de taille %ld\n", ligne, fichier, taille);
+        }
+    }
+}
+
+#define __REALLOC(PTR, TAILLE)  __realloc_alloc_lst(PTR, TAILLE, __LINE__, __FILE__)
+void* __realloc_alloc_lst(void* oldPtr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+{
+    void* ptr = NULL;
+    int indice = 0;
+    
+    indice = __avoir_alloc_indice(oldPtr);
+    ptr = (void*)realloc(oldPtr, taille+1);
+    if(ptr != NULL)
+    {
+#if __MEMORY_DEBUG__ == 2
+        printf("__MEMORY__ realloc indice:%d ligne:%d, fonction:%s\n", indice, ligne, fic);
+#endif // __MEMORY_DEBUG__
+        if(indice != -1)
+        {
+            __vider_alloc_indice(indice);
+        }
+        __insert_alloc_lst(ptr, taille, ligne, fic);
+        *((char*)(ptr+taille)) = __MEMORY_TEST_CRUSH;
+    }
+    return ptr;
+}
+
 #define __MALLOC(TAILLE)  __malloc_alloc_lst(TAILLE, __LINE__, __FILE__)
 void* __malloc_alloc_lst(__SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
 {
     void* ptr = NULL;
-    ptr = (void*)malloc(taille);
+    ptr = (void*)malloc(taille+1);
     if(ptr != NULL)
     {
 #if __MEMORY_DEBUG__ == 2
         printf("__MEMORY__ alloc ligne:%d, fonction:%s\n", ligne, fic);
 #endif // __MEMORY_DEBUG__
+        *((char*)(ptr+taille)) = __MEMORY_TEST_CRUSH;
         __insert_alloc_lst(ptr, taille, ligne, fic);
     }
     return ptr;
@@ -144,26 +215,22 @@ void* __malloc_alloc_lst(__SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic
 void __free_alloc_lst(void* ptr)
 {
     int inc = 0;
-    int trouve = 0;
 
     if(ptr == NULL)
     {
         return;
     }
 
-    while(inc < __alloc_memory_max && trouve == 0)
+    inc = __avoir_alloc_indice(ptr);
+    if(inc != -1)
     {
-        if(__alloc_lst[inc].ptr == ptr)
-        {
+        __verifier_ecrasement(&__alloc_lst[inc]);
 #if __MEMORY_DEBUG__ == 2
             printf("__MEMORY__ trouve elmt a %d, taille:%ld\n", inc, __alloc_lst[inc].taille);
 #endif // __MEMORY_DEBUG__
-            __alloc_lst[inc].ptr = NULL;
-            __alloc_lst[inc].taille = 0;
-            __alloc_memory --;
-            trouve = 1;
-        }
-        inc++;
+        __alloc_lst[inc].ptr = NULL;
+        __alloc_lst[inc].taille = 0;
+        __alloc_memory --;
     }
     free(ptr);
 }
@@ -284,7 +351,8 @@ void __trace_alloc_lst()
         printf("/------------------------------------------------------------------\\\n");
         printf("|NB ALLOC|   CUMUL  |LIGNE|               FICHIER                  |\n");
         printf("|------------------------------------------------------------------|\n");
-
+        inc=0;
+        STOP=0;
         while(inc < __alloc_memory_max && STOP == 0)
         {
             nbElem ++;
