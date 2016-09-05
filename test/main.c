@@ -71,8 +71,10 @@ int main(int argc, char **argv)
     __MALLOC(15);
 */
     liste = (char*)__MALLOC(10);
-    liste = (char*)__REALLOC(liste, 20);
-    sprintf(liste, "AZERTYUIOP1234567890");
+    liste = (char*)__REALLOC(liste, 22);
+    _SPRINTF(liste, "AZERTYUIOP123456789012");
+    
+    int retour = snprintf(liste, 15, "123456789012345678901");
     __FREE(liste);
     __TRACE_ALLOC()
     __CLEAR_MEMORY_REGISTER

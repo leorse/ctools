@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifndef __CTOOLS_H__
 #define __CTOOLS_H__
 
 
-#define __MEMORY_DEBUG__ 2
+#define __MEMORY_DEBUG__ 1
 
 
 // 1= mode sans sortie
@@ -51,6 +52,7 @@ void __vider_alloc_indice(int indice)
     if(indice<__alloc_memory_max)
     {
         memset(&__alloc_lst[indice], 0, sizeof(TYP___MEMORY_DEBUG));
+        __alloc_memory--;
     }
 }
 
@@ -153,6 +155,20 @@ int __avoir_alloc_indice(void* ptr)
         inc++;
     }
     return -1;
+}
+
+TYP___MEMORY_DEBUG* __avoir_alloc_elem(void* ptr)
+{
+    TYP___MEMORY_DEBUG* retour = NULL;
+    
+    int indice = 0;
+    indice = __avoir_alloc_indice(ptr);
+    
+    if(indice!=-1)
+    {
+        retour = &__alloc_lst[indice];
+    }
+    return retour;
 }
 
 void __verifier_ecrasement(TYP___MEMORY_DEBUG* ptr_alloc_lst_element)
@@ -388,12 +404,43 @@ void __trace_alloc_lst()
         //printf("__MEMORY__ %ld elements pour %ld oct alloues\n", __alloc_memory, cumul);
     }
 }
+
+#define _SPRINTF(PTR,FORMAT,...)  __sprintf_verif_ecrasement(PTR, FORMAT, ##__VA_ARGS__)
+
+/**
+ * @brief Verifie que le contenu du sprintf ne depasse pas la taille du tableau
+ */
+void __sprintf_verif_ecrasement(char* tab, char* format, ...)
+{
+    int retour = 0;
+    va_list args;
+
+    TYP___MEMORY_DEBUG* element =  __avoir_alloc_elem(tab);
+    
+        
+    if(element != NULL)
+    {
+        va_start(args, format);
+        retour = vsnprintf(tab, element->taille, format, args);
+        retour++;
+        if(retour>element->taille)
+        {
+            printf("ECRASEMENT/sprintf/ptr l:%d/fic:%s/size:%ld/sprintf size:%d\n", element->ligne, element->fichier, element->taille,retour);
+        }
+        va_end(args);        
+    }
+    va_start(args, format);
+    sprintf(tab, format,args);
+    va_end(args);
+}
+
 #else
 
 #define __CLEAR_MEMORY_REGISTER
 #define __TRACE_ALLOC(MODE)
 #define __FREE(PTR) free(PTR)
 #define __MALLOC(TAILLE) malloc(TAILLE)
+#define __SPRINTF(PTR,FORMAT,...) sprintf(PTR,FORMAT,...)
 
 #endif // __MEMORY_DEBUG__
 
