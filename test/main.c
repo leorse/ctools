@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../ctools.h"
-#include "../linked_list.h"
+#include "ctools.h"
+#include "linked_list.h"
 
 typedef struct LBL_STR
 {
