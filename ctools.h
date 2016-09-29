@@ -37,7 +37,7 @@ long __alloc_memory_max = 0L;
  * \brief Get only the filename by looking for the last / or \
  * \return the filename resulting of a strdup, MUST BE FREED
 */
-void __basename(char const *path, char* dest)
+void __CT_basename(char const *path, char* dest)
 {
     //looking for the last / (UNIX)
     const char *string = strrchr(path, '/');
@@ -88,7 +88,7 @@ void __basename(char const *path, char* dest)
 /**
  * \brief Empty a cell of the memory array
  */
-void __vider_alloc_indice(int indice)
+void __CT_vider_alloc_indice(int indice)
 {
     //check if indice is in the top boundary
     if(indice<__alloc_memory_max && indice>=0)
@@ -105,7 +105,7 @@ void __vider_alloc_indice(int indice)
  * \param ligne, the line in the code where the element is allocated
  * \param fic, the filename (full or short) where the element si allocated
  */
-int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+int __CT_insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
 {
     long inc = 0;
     int trouve = 0;
@@ -125,7 +125,7 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
         __alloc_lst[0].ptr = ptr;
         __alloc_lst[0].taille = taille;
         __alloc_lst[0].ligne = ligne;
-        __basename(fic, __alloc_lst[0].fichier);
+        __CT_basename(fic, __alloc_lst[0].fichier);
         //strncpy(__alloc_lst[0].fichier, tmpFic, taille_coupe);
         //__alloc_lst[0].fichier[taille_coupe] = '\0';
 #if __MEMORY_DEBUG__ == 2
@@ -144,7 +144,7 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
                 __alloc_lst[inc].ptr = ptr;
                 __alloc_lst[inc].taille = taille;
                 __alloc_lst[inc].ligne = ligne;
-                __basename(fic, __alloc_lst[inc].fichier);
+                __CT_basename(fic, __alloc_lst[inc].fichier);
                 //__alloc_lst[inc].fichier[taille_coupe] = '\0';
 #if __MEMORY_DEBUG__ == 2
                 printf("__MEMORY__ trouve vide elmt:%ld, ajout taille:%ld, ligne:%d, fichier:%s\n", inc, taille, __alloc_lst[inc].ligne, __alloc_lst[inc].fichier);
@@ -161,7 +161,7 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
             __alloc_lst[__alloc_memory_max].ptr = ptr;
             __alloc_lst[__alloc_memory_max].taille = taille;
             __alloc_lst[__alloc_memory_max].ligne = ligne;
-            __basename(fic, __alloc_lst[__alloc_memory_max].fichier);
+            __CT_basename(fic, __alloc_lst[__alloc_memory_max].fichier);
             //__alloc_lst[__alloc_memory_max].fichier[taille_coupe] = '\0';
             __alloc_memory++;
 #if __MEMORY_DEBUG__ == 2
@@ -180,7 +180,7 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
  * @param ptr
  * @return 
  */
-int __avoir_alloc_indice(void* ptr)
+int __CT_avoir_alloc_indice(void* ptr)
 {
     long inc = 0;
     
@@ -195,12 +195,12 @@ int __avoir_alloc_indice(void* ptr)
     return -1;
 }
 
-TYP___MEMORY_DEBUG* __avoir_alloc_elem(void* ptr)
+TYP___MEMORY_DEBUG* __CT_avoir_alloc_elem(void* ptr)
 {
     TYP___MEMORY_DEBUG* retour = NULL;
     
     int indice = 0;
-    indice = __avoir_alloc_indice(ptr);
+    indice = __CT_avoir_alloc_indice(ptr);
     
     if(indice!=-1)
     {
@@ -209,7 +209,7 @@ TYP___MEMORY_DEBUG* __avoir_alloc_elem(void* ptr)
     return retour;
 }
 
-void __verifier_ecrasement(TYP___MEMORY_DEBUG* ptr_alloc_lst_element)
+void __CT_verifier_ecrasement(TYP___MEMORY_DEBUG* ptr_alloc_lst_element)
 {
     void* ptr = ptr_alloc_lst_element->ptr;
     char carControl = '\0';
@@ -226,13 +226,13 @@ void __verifier_ecrasement(TYP___MEMORY_DEBUG* ptr_alloc_lst_element)
     }
 }
 
-#define __REALLOC(PTR, TAILLE)  __realloc_alloc_lst(PTR, TAILLE, __LINE__, __FILE__)
-void* __realloc_alloc_lst(void* oldPtr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+#define __REALLOC(PTR, TAILLE)  __CT_realloc_alloc_lst(PTR, TAILLE, __LINE__, __FILE__)
+void* __CT_realloc_alloc_lst(void* oldPtr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
 {
     void* ptr = NULL;
     int indice = 0;
     
-    indice = __avoir_alloc_indice(oldPtr);
+    indice = __CT_avoir_alloc_indice(oldPtr);
     ptr = (void*)realloc(oldPtr, taille+1);
     if(ptr != NULL)
     {
@@ -241,16 +241,16 @@ void* __realloc_alloc_lst(void* oldPtr, __SIZE_TYPE_TAILLE__ taille, int ligne, 
 #endif // __MEMORY_DEBUG__
         if(indice != -1)
         {
-            __vider_alloc_indice(indice);
+            __CT_vider_alloc_indice(indice);
         }
-        __insert_alloc_lst(ptr, taille, ligne, fic);
+        __CT_insert_alloc_lst(ptr, taille, ligne, fic);
         *((char*)(ptr+taille)) = __MEMORY_TEST_CRUSH;
     }
     return ptr;
 }
 
-#define __MALLOC(TAILLE)  __malloc_alloc_lst(TAILLE, __LINE__, __FILE__)
-void* __malloc_alloc_lst(__SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+#define __MALLOC(TAILLE)  __CT_malloc_alloc_lst(TAILLE, __LINE__, __FILE__)
+void* __CT_malloc_alloc_lst(__SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
 {
     void* ptr = NULL;
     ptr = (void*)malloc(taille+1);
@@ -260,13 +260,13 @@ void* __malloc_alloc_lst(__SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic
         printf("__MEMORY__ alloc ligne:%d, fonction:%s\n", ligne, fic);
 #endif // __MEMORY_DEBUG__
         *((char*)(ptr+taille)) = __MEMORY_TEST_CRUSH;
-        __insert_alloc_lst(ptr, taille, ligne, fic);
+        __CT_insert_alloc_lst(ptr, taille, ligne, fic);
     }
     return ptr;
 }
 
-#define __FREE(PTR)  __free_alloc_lst(PTR)
-void __free_alloc_lst(void* ptr)
+#define __FREE(PTR)  __CT_free_alloc_lst(PTR)
+void __CT_free_alloc_lst(void* ptr)
 {
     int inc = 0;
 
@@ -275,10 +275,10 @@ void __free_alloc_lst(void* ptr)
         return;
     }
 
-    inc = __avoir_alloc_indice(ptr);
+    inc = __CT_avoir_alloc_indice(ptr);
     if(inc != -1)
     {
-        __verifier_ecrasement(&__alloc_lst[inc]);
+        __CT_verifier_ecrasement(&__alloc_lst[inc]);
 #if __MEMORY_DEBUG__ == 2
             printf("__MEMORY__ trouve elmt a %d, taille:%ld\n", inc, __alloc_lst[inc].taille);
 #endif // __MEMORY_DEBUG__
@@ -291,7 +291,7 @@ void __free_alloc_lst(void* ptr)
 
 
 
-int __tri_callback_alloc_lst(const void *element1, const void *element2)
+int __CT_tri_callback_alloc_lst(const void *element1, const void *element2)
 {
     const TYP___MEMORY_DEBUG *elem1 = (TYP___MEMORY_DEBUG*)element1;
     const TYP___MEMORY_DEBUG *elem2 = (TYP___MEMORY_DEBUG*)element2;
@@ -340,12 +340,12 @@ int __tri_callback_alloc_lst(const void *element1, const void *element2)
  * \return void
  *
  */
-void __tri_alloc_lst()
+void __CT_tri_alloc_lst()
 {
-    qsort(__alloc_lst, __alloc_memory_max, sizeof(TYP___MEMORY_DEBUG), __tri_callback_alloc_lst);
+    qsort(__alloc_lst, __alloc_memory_max, sizeof(TYP___MEMORY_DEBUG), __CT_tri_callback_alloc_lst);
 }
 
-#define __TRACE_ALLOC() __trace_alloc_lst();
+#define __TRACE_ALLOC() __CT_trace_alloc_lst();
 /** \brief fonction qui affiche le contenu de la liste d'allocation
  *  sous forme d'un tableau
  *  chaque ligne du tableau est la somme de toutes les allocations d'une même ligne de code
@@ -353,7 +353,7 @@ void __tri_alloc_lst()
  * \return void
  *
  */
-void __trace_alloc_lst()
+void __CT_trace_alloc_lst()
 {
     long cumul = 0L;
     unsigned long totalCumul = 0L;
@@ -377,7 +377,7 @@ void __trace_alloc_lst()
         }
     }
 #endif // __MEMORY_DEBUG__
-    __tri_alloc_lst();
+    __CT_tri_alloc_lst();
 #if __MEMORY_DEBUG__ == 2
     for(inc = 0; inc < __alloc_memory_max; inc++)
     {
@@ -443,17 +443,17 @@ void __trace_alloc_lst()
     }
 }
 
-#define _SPRINTF(PTR,FORMAT,...)  __sprintf_verif_ecrasement(PTR, FORMAT, ##__VA_ARGS__)
+#define _SPRINTF(PTR,FORMAT,...)  __CT_sprintf_verif_ecrasement(PTR, FORMAT, ##__VA_ARGS__)
 
 /**
  * @brief Verifie que le contenu du sprintf ne depasse pas la taille du tableau
  */
-void __sprintf_verif_ecrasement(char* tab, char* format, ...)
+void __CT_sprintf_verif_ecrasement(char* tab, char* format, ...)
 {
     int retour = 0;
     va_list args;
 
-    TYP___MEMORY_DEBUG* element =  __avoir_alloc_elem(tab);
+    TYP___MEMORY_DEBUG* element =  __CT_avoir_alloc_elem(tab);
     
         
     if(element != NULL)
@@ -472,16 +472,16 @@ void __sprintf_verif_ecrasement(char* tab, char* format, ...)
     va_end(args);
 }
 
-#define _STRCPY(PTR,SRC)  __strcpy_verif_ecrasement(PTR, SRC)
+#define _STRCPY(PTR,SRC)  __CT_strcpy_verif_ecrasement(PTR, SRC)
 
 /**
  * @brief Verifie que le contenu du sprintf ne depasse pas la taille du tableau
  */
-void __strcpy_verif_ecrasement(char* tab, const char* src)
+void __CT_strcpy_verif_ecrasement(char* tab, const char* src)
 {
     __SIZE_TYPE_TAILLE__ size = 0;
 
-    TYP___MEMORY_DEBUG* element =  __avoir_alloc_elem(tab);
+    TYP___MEMORY_DEBUG* element =  __CT_avoir_alloc_elem(tab);
     size=strlen(src);
         
     if(element != NULL)

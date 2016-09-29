@@ -24,7 +24,7 @@ void initElmt(TYP_STR** lst)
     strcpy((*lst)->une_chaine, "mon pointeur_1!!");
     (*lst)->i = 1;
     ptr = *lst;
-    for(i = 0; i < 20000; i++)
+    for(i = 0; i < 20; i++)
     {
         ptr = creerElement(sizeof(TYP_STR), ptr);
         //sprintf(ptr->une_chaine, "pointeur %10i", i);
