@@ -6,7 +6,7 @@
 #define __CTOOLS_H__
 
 
-#define __MEMORY_DEBUG__ 1
+#define __MEMORY_DEBUG__ 2
 
 
 // 1= mode sans sortie
@@ -30,46 +30,86 @@ long __alloc_memory_max = 0L;
 #define __MEMORY_CHUNK 5L
 #define __CLEAR_MEMORY_REGISTER   __alloc_memory = 0L; \
                                   if(__alloc_lst != NULL) {free(__alloc_lst);} \
-                                  __alloc_lst = NULL;
+                                  __alloc_lst = NULL; \
+                                  __alloc_memory_max = 0;
 
-char *__basename(char const *path)
+/**
+ * \brief Get only the filename by looking for the last / or \
+ * \return the filename resulting of a strdup, MUST BE FREED
+*/
+void __basename(char const *path, char* dest)
 {
-    char *s = strrchr(path, '/');
-    if (!s)
+    //looking for the last / (UNIX)
+    const char *string = strrchr(path, '/');
+    int longFic = 0; //the size of the found path
+    
+    if(dest == NULL) return;
+    
+    if (!string)
     {
-        s = strrchr(path, '\\');
-        if (!s)
+        //if not found, looking for the last \ (Windows)
+        string = strrchr(path, '\\');
+        if (!string)
         {
-            return strdup(path);
+            //if still not found, duplicate the path
+            string=path;
+            //return strdup(path);
+        }
+        else
+        {
+            //if found, s point to '/' or '\', so we do s+1
+            string++;
         }
     }
-    return strdup(s + 1);
+    else
+    {
+        //if found, s point to '/' or '\', so we do s+1
+        string++;
+    }
+    
+    //if found, duplicate the string. +1 to avoid the \ or /
+    //return strdup(s + 1);
+    longFic = strlen(string);
+    memset(dest, '\0', __MEMORY_TAILLE_FIC+1);
+    if(longFic>__MEMORY_TAILLE_FIC)
+    {
+        //size too long for destination string, so we cut it to __MEMORY_TAILLE_FIC
+        strncpy(dest, string, __MEMORY_TAILLE_FIC);
+    }
+    else
+    {
+        //string fits well into destination string, so we cut it to __MEMORY_TAILLE_FIC
+        strncpy(dest, string, longFic);
+    }
+    
 }
 
 
+/**
+ * \brief Empty a cell of the memory array
+ */
 void __vider_alloc_indice(int indice)
 {
-    if(indice<__alloc_memory_max)
+    //check if indice is in the top boundary
+    if(indice<__alloc_memory_max && indice>=0)
     {
         memset(&__alloc_lst[indice], 0, sizeof(TYP___MEMORY_DEBUG));
         __alloc_memory--;
     }
 }
 
+/**
+ * \brief add an element into the main array
+ * \param ptr the element to add is pointed by ptr
+ * \param taille, the size of the element to add
+ * \param ligne, the line in the code where the element is allocated
+ * \param fic, the filename (full or short) where the element si allocated
+ */
 int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
 {
     long inc = 0;
     int trouve = 0;
-    int long_fic = 0;
-    int taille_coupe = 0;
-    char *tmpFic = NULL;
 
-    if(fic != NULL)
-    {
-        tmpFic = __basename(fic);
-        long_fic = strlen(tmpFic);
-        taille_coupe = long_fic > __MEMORY_TAILLE_FIC ? __MEMORY_TAILLE_FIC : long_fic;
-    }
 
     if(__alloc_memory_max == 0)
     {
@@ -85,8 +125,9 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
         __alloc_lst[0].ptr = ptr;
         __alloc_lst[0].taille = taille;
         __alloc_lst[0].ligne = ligne;
-        strncpy(__alloc_lst[0].fichier, tmpFic, taille_coupe);
-        __alloc_lst[0].fichier[taille_coupe] = '\0';
+        __basename(fic, __alloc_lst[0].fichier);
+        //strncpy(__alloc_lst[0].fichier, tmpFic, taille_coupe);
+        //__alloc_lst[0].fichier[taille_coupe] = '\0';
 #if __MEMORY_DEBUG__ == 2
         printf("__MEMORY__ premier init, alloc de %ld*%ld=%ld, taille lst:%ld, ligne:%d, fonc:%s\n", __alloc_memory_max, (__SIZE_TYPE_TAILLE__)sizeof(TYP___MEMORY_DEBUG),
                sizeof(TYP___MEMORY_DEBUG)*__alloc_memory_max,
@@ -103,8 +144,8 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
                 __alloc_lst[inc].ptr = ptr;
                 __alloc_lst[inc].taille = taille;
                 __alloc_lst[inc].ligne = ligne;
-                strncpy(__alloc_lst[inc].fichier, tmpFic, taille_coupe);
-                __alloc_lst[inc].fichier[taille_coupe] = '\0';
+                __basename(fic, __alloc_lst[inc].fichier);
+                //__alloc_lst[inc].fichier[taille_coupe] = '\0';
 #if __MEMORY_DEBUG__ == 2
                 printf("__MEMORY__ trouve vide elmt:%ld, ajout taille:%ld, ligne:%d, fichier:%s\n", inc, taille, __alloc_lst[inc].ligne, __alloc_lst[inc].fichier);
 #endif // __MEMORY_DEBUG__
@@ -120,8 +161,8 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
             __alloc_lst[__alloc_memory_max].ptr = ptr;
             __alloc_lst[__alloc_memory_max].taille = taille;
             __alloc_lst[__alloc_memory_max].ligne = ligne;
-            strncpy(__alloc_lst[__alloc_memory_max].fichier, tmpFic, taille_coupe);
-            __alloc_lst[__alloc_memory_max].fichier[taille_coupe] = '\0';
+            __basename(fic, __alloc_lst[__alloc_memory_max].fichier);
+            //__alloc_lst[__alloc_memory_max].fichier[taille_coupe] = '\0';
             __alloc_memory++;
 #if __MEMORY_DEBUG__ == 2
             printf("__MEMORY__ pas trouve vide, augment lst a %ld, raz de %ld a %ld\n", sizeof(TYP___MEMORY_DEBUG) * (__alloc_memory_max + __MEMORY_CHUNK), __alloc_memory_max, sizeof(TYP___MEMORY_DEBUG)*__MEMORY_CHUNK);
@@ -130,10 +171,7 @@ int __insert_alloc_lst(void* ptr, __SIZE_TYPE_TAILLE__ taille, int ligne, const 
 
         }
     }
-    if(tmpFic != NULL)
-    {
-        free(tmpFic);
-    }
+    
     return 0;
 }
 
@@ -425,13 +463,35 @@ void __sprintf_verif_ecrasement(char* tab, char* format, ...)
         retour++;
         if(retour>element->taille)
         {
-            printf("ECRASEMENT/sprintf/ptr l:%d/fic:%s/size:%ld/sprintf size:%d\n", element->ligne, element->fichier, element->taille,retour);
+            printf("DEPASSEMENT/sprintf/ptr l:%d/fic:%s/size:%ld/sprintf size:%d\n", element->ligne, element->fichier, element->taille,retour);
         }
         va_end(args);        
     }
     va_start(args, format);
     sprintf(tab, format,args);
     va_end(args);
+}
+
+#define _STRCPY(PTR,SRC)  __strcpy_verif_ecrasement(PTR, SRC)
+
+/**
+ * @brief Verifie que le contenu du sprintf ne depasse pas la taille du tableau
+ */
+void __strcpy_verif_ecrasement(char* tab, const char* src)
+{
+    __SIZE_TYPE_TAILLE__ size = 0;
+
+    TYP___MEMORY_DEBUG* element =  __avoir_alloc_elem(tab);
+    size=strlen(src);
+        
+    if(element != NULL)
+    {
+        if(size>element->taille)
+        {
+            printf("DEPASSEMENT/strcpy/ptr l:%d/fic:%s/size:%ld/source size:%ld\n", element->ligne, element->fichier, element->taille, size);
+        }       
+    }
+    strcpy(tab, src);
 }
 
 #else
