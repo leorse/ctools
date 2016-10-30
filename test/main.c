@@ -250,6 +250,184 @@ void testLog()
     printf("out testLog\n");
 }
 
+/*****************************************************
+ * STATIC TEST
+*****************************************************/
+
+//test that we don't see le static element in the trace result
+void testAddStatic()
+{
+    char tab[50];
+    char* memory1 = NULL;
+    char* memory2 = NULL;
+    char* memory3 = NULL;
+    const short size = 30;
+    
+    printf("in testAddStatic\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    memory1 = (char*)__CT_MALLOC(size);
+    __CT_MEMSET(memory1, '\0', size);
+    __CT_ADD_STATIC(tab, 50);
+    memory2 = (char*)__CT_MALLOC(size);
+    __CT_MEMSET(memory2, '\0', size);
+    memory3 = (char*)__CT_MALLOC(size);
+    __CT_MEMSET(memory3, '\0', size);
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testAddStatic\n");
+}
+
+void testStaticSprintfOK()
+{
+    const short size = 25;
+    char memoryToClear[size];
+    
+    printf("in testStaticSprintfOK\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    __CT_ADD_STATIC(memoryToClear, size);
+    //insert string: size < 25
+    __CT_SPRINTF(memoryToClear, "A string of %d car", size);
+    printf ("  - String: %s\n", memoryToClear);
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticSprintfOK\n");
+}
+
+void testStaticSprintfKO()
+{
+    const short size = 25;
+    char memoryToClear[size];
+    
+    printf("in testStaticSprintfKO\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    __CT_ADD_STATIC(memoryToClear, size);
+    //insert string: size > 25
+    __CT_SPRINTF(memoryToClear, "A huge big string of %d car", size);
+    printf ("  - String: %s\n", memoryToClear);
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticSprintfKO\n");
+}
+
+void testStaticMemcpyOK()
+{
+    
+    const short sizeSrc = 25;
+    const short sizeDest = 25;
+    char memorySrc[sizeSrc];
+    char memoryDest[sizeDest];
+    const short sizeTrf = 25;
+    printf("in testStaticMemcpyOK\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_ADD_STATIC(memoryDest, sizeDest);
+    __CT_MEMCPY(memoryDest, memorySrc, sizeTrf);
+    
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticMemcpyOK\n");
+}
+
+void testStaticMemcpySrcKO()
+{
+    const short sizeSrc = 25;
+    const short sizeDest = 30;
+    char memorySrc[sizeSrc];
+    char memoryDest[sizeDest];
+    
+    const short sizeTrf = 27;
+    printf("in testStaticMemcpySrcKO\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_ADD_STATIC(memoryDest, sizeDest);
+    __CT_MEMCPY(memoryDest, memorySrc, sizeTrf);
+    
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticMemcpySrcKO\n");
+}
+
+void testStaticMemcpyDestKO()
+{
+    const short sizeSrc = 25;
+    const short sizeDest = 30;
+    char memorySrc[sizeSrc];
+    char memoryDest[sizeDest];
+    const short sizeTrf = 27;
+    printf("in testStaticMemcpyDestKO\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_ADD_STATIC(memoryDest, sizeDest);
+    __CT_MEMCPY(memoryDest, memorySrc, sizeTrf);
+    
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticMemcpyDestKO\n");
+}
+
+void testStaticStrcpyOK()
+{
+    const short sizeSrc = 30;
+    char memorySrc[sizeSrc];
+    
+    printf("in testStaticStrcpyOK\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_STRCPY(memorySrc, "a simple copy");
+
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticStrcpyOK\n");
+}
+
+void testStaticStrcpyKO()
+{
+    const short sizeSrc = 15;
+    char memorySrc[sizeSrc];
+    
+    printf("in testStaticStrcpyKO\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_STRCPY(memorySrc, "a too much long copy");
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticStrcpyKO\n");
+}
+
+void testStaticMemsetOK()
+{
+    const short sizeSrc = 30;
+    char memorySrc[sizeSrc];
+    
+    printf("in testStaticMemsetOK\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_MEMSET(memorySrc, '\0', sizeSrc);
+
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticMemsetOK\n");
+}
+
+void testStaticMemsetKO()
+{
+    const short sizeSrc = 15;
+    char* memorySrc[sizeSrc];
+    
+    printf("in testStaticMemsetKO\n");
+    __CT_CLEAR_MEMORY_REGISTER();
+    
+    __CT_ADD_STATIC(memorySrc, sizeSrc);
+    __CT_MEMSET(memorySrc, '\0', sizeSrc+5);
+    __CT_TRACE_ALLOC();
+    __CT_CLEAR_MEMORY_REGISTER();
+    printf("out testStaticMemsetKO\n");
+}
 
 int main(int argc, char **argv)
 {
@@ -272,6 +450,24 @@ int main(int argc, char **argv)
     testMemsetKO();
     
     testLog();
+    
+    /********************************************
+     * STATIQUE
+    **********************************************/
+    testAddStatic();
+    
+    testStaticSprintfOK();
+    testStaticSprintfKO();
+    
+    testStaticMemcpyOK();
+    testStaticMemcpySrcKO();
+    testStaticMemcpyDestKO();
+    
+    testStaticStrcpyOK();
+    testStaticStrcpyKO();
+    
+    testStaticMemsetOK();
+    testStaticMemsetKO();
     
     __CT_CLEAR_MEMORY_REGISTER();
     initElmt(&mon_premier);

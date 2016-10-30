@@ -20,7 +20,7 @@ typedef struct __CT_LBL_MEMORY_DEBUG
     void* ptr;
     __CT_SIZE_TYPE_TAILLE__ taille;
     int    ligne;
-    unsigned short checksum;
+    unsigned char isStatic;
     char   fichier[__CT_MEMORY_TAILLE_FIC + 1];
 } __CT_TYP_MEMORY_DEBUG;
 __CT_TYP_MEMORY_DEBUG *__CT_alloc_lst = NULL;
@@ -123,7 +123,7 @@ void __CT_vider_alloc_indice(int indice)
  * \param ligne, the line in the code where the element is allocated
  * \param fic, the filename (full or short) where the element si allocated
  */
-int __CT_insert_alloc_lst(void* ptr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+int __CT_insert_alloc_lst(void* ptr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic, const char isStatic)
 {
     long inc = 0;
     int trouve = 0;
@@ -143,11 +143,12 @@ int __CT_insert_alloc_lst(void* ptr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, 
         __CT_alloc_lst[0].ptr = ptr;
         __CT_alloc_lst[0].taille = taille;
         __CT_alloc_lst[0].ligne = ligne;
+        __CT_alloc_lst[0].isStatic = isStatic;
         __CT_basename(fic, __CT_alloc_lst[0].fichier);
-        //strncpy(__alloc_lst[0].fichier, tmpFic, taille_coupe);
-        //__alloc_lst[0].fichier[taille_coupe] = '\0';
 #if __CT_MEMORY_DEBUG__ == 2
-        printf("__MEMORY__ premier init, alloc de %ld*%ld=%ld, taille lst:%ld, ligne:%d, fonc:%s\n", __CT_alloc_memory_max, (__CT_SIZE_TYPE_TAILLE__)sizeof(__CT_TYP_MEMORY_DEBUG),
+        printf("__MEMORY__ premier init, %s de %ld*%ld=%ld, taille lst:%ld, ligne:%d, fonc:%s\n", 
+                isStatic?"Ajout STATIQUE":"Alloc DYNAMIQUE",
+               __CT_alloc_memory_max, (__CT_SIZE_TYPE_TAILLE__)sizeof(__CT_TYP_MEMORY_DEBUG),
                sizeof(__CT_TYP_MEMORY_DEBUG)*__CT_alloc_memory_max,
                __CT_MEMORY_CHUNK, __CT_alloc_lst[0].ligne, __CT_alloc_lst[0].fichier);
 #endif // __MEMORY_DEBUG__
@@ -162,10 +163,12 @@ int __CT_insert_alloc_lst(void* ptr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, 
                 __CT_alloc_lst[inc].ptr = ptr;
                 __CT_alloc_lst[inc].taille = taille;
                 __CT_alloc_lst[inc].ligne = ligne;
+                __CT_alloc_lst[inc].isStatic = isStatic;
                 __CT_basename(fic, __CT_alloc_lst[inc].fichier);
-                //__alloc_lst[inc].fichier[taille_coupe] = '\0';
 #if __CT_MEMORY_DEBUG__ == 2
-                printf("__MEMORY__ trouve vide elmt:%ld, ajout taille:%ld, ligne:%d, fichier:%s\n", inc, taille, __CT_alloc_lst[inc].ligne, __CT_alloc_lst[inc].fichier);
+                printf("__MEMORY__ trouve vide elmt %s:%ld, ajout taille:%ld, ligne:%d, fichier:%s\n", 
+                isStatic?"Ajout STATIQUE":"Alloc DYNAMIQUE",
+                inc, taille, __CT_alloc_lst[inc].ligne, __CT_alloc_lst[inc].fichier);
 #endif // __MEMORY_DEBUG__
                 __CT_alloc_memory++;
                 trouve = 1;
@@ -179,8 +182,8 @@ int __CT_insert_alloc_lst(void* ptr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, 
             __CT_alloc_lst[__CT_alloc_memory_max].ptr = ptr;
             __CT_alloc_lst[__CT_alloc_memory_max].taille = taille;
             __CT_alloc_lst[__CT_alloc_memory_max].ligne = ligne;
+            __CT_alloc_lst[__CT_alloc_memory_max].isStatic = isStatic;
             __CT_basename(fic, __CT_alloc_lst[__CT_alloc_memory_max].fichier);
-            //__alloc_lst[__alloc_memory_max].fichier[taille_coupe] = '\0';
             __CT_alloc_memory++;
 #if __CT_MEMORY_DEBUG__ == 2
             printf("__MEMORY__ pas trouve vide, augment lst a %ld, raz de %ld a %ld\n", sizeof(__CT_TYP_MEMORY_DEBUG) * (__CT_alloc_memory_max + __CT_MEMORY_CHUNK), __CT_alloc_memory_max, sizeof(__CT_TYP_MEMORY_DEBUG)*__CT_MEMORY_CHUNK);
@@ -237,9 +240,9 @@ void __CT_verifier_ecrasement(__CT_TYP_MEMORY_DEBUG* ptr_alloc_lst_element)
     if(ptr != NULL)
     {
         carControl = *(char*)(((char*)ptr)+taille);
-        if(carControl != __CT_MEMORY_TEST_CRUSH)
+        if(ptr_alloc_lst_element->isStatic==0 && carControl != __CT_MEMORY_TEST_CRUSH)
         {
-            printf("ECRASEMENT du pointeur alloué ligne %d, fichier %s de taille %ld\n", ligne, fichier, taille);
+            __CT_LOG("ECRASEMENT du pointeur alloué ligne %d, fichier %s de taille %ld\n", ligne, fichier, taille);
         }
     }
 }
@@ -259,9 +262,13 @@ void* __CT_realloc_alloc_lst(void* oldPtr, __CT_SIZE_TYPE_TAILLE__ taille, int l
 #endif // __MEMORY_DEBUG__
         if(indice != -1)
         {
+            if(__CT_alloc_lst[indice].isStatic)
+            {
+                __CT_LOG("__ERROR_REALLOC__ un element statique ne peut etre realloue!!!\n");
+            }
             __CT_vider_alloc_indice(indice);
         }
-        __CT_insert_alloc_lst(ptr, taille, ligne, fic);
+        __CT_insert_alloc_lst(ptr, taille, ligne, fic, 0);
         *((char*)(((char*)ptr)+taille)) = __CT_MEMORY_TEST_CRUSH;
     }
     return ptr;
@@ -278,9 +285,18 @@ void* __CT_malloc_alloc_lst(__CT_SIZE_TYPE_TAILLE__ taille, int ligne, const cha
         printf("__MEMORY__ alloc ligne:%d, fonction:%s\n", ligne, fic);
 #endif // __MEMORY_DEBUG__
         *((char*)(((char*)ptr)+taille)) = __CT_MEMORY_TEST_CRUSH;
-        __CT_insert_alloc_lst(ptr, taille, ligne, fic);
+        __CT_insert_alloc_lst(ptr, taille, ligne, fic, 0);
     }
     return ptr;
+}
+
+#define __CT_ADD_STATIC(PTR, TAILLE)  __CT_add_static_alloc_lst(PTR, TAILLE, __LINE__, __FILE__)
+void __CT_add_static_alloc_lst(void* staticPtr, __CT_SIZE_TYPE_TAILLE__ taille, int ligne, const char* fic)
+{
+    if(staticPtr != NULL)
+    {
+        __CT_insert_alloc_lst(staticPtr, taille, ligne, fic, 1);
+    }
 }
 
 #define __CT_FREE(PTR)  __CT_free_alloc_lst(PTR)
@@ -290,23 +306,27 @@ void __CT_free_alloc_lst(void* ptr)
 
     if(ptr == NULL)
     {
-        printf("__ERROR_FREE__ element vaut NULL\n");
+        __CT_LOG("__ERROR_FREE__ element vaut NULL\n");
     }
 
     inc = __CT_avoir_alloc_indice(ptr);
     if(inc != -1)
     {
-        __CT_verifier_ecrasement(&__CT_alloc_lst[inc]);
-#if __CT_MEMORY_DEBUG__ == 2
-            printf("__MEMORY__ trouve elmt a %d, taille:%ld\n", inc, __CT_alloc_lst[inc].taille);
-#endif // __MEMORY_DEBUG__
-        __CT_alloc_lst[inc].ptr = NULL;
-        __CT_alloc_lst[inc].taille = 0;
-        __CT_alloc_memory --;
+        if(__CT_alloc_lst[inc].isStatic)
+        {
+            __CT_LOG("__ERROR_FREE__ element statique, ne peut etre libere\n");
+        }
+        else
+        {
+            __CT_verifier_ecrasement(&__CT_alloc_lst[inc]);
+            __CT_alloc_lst[inc].ptr = NULL;
+            __CT_alloc_lst[inc].taille = 0;
+            __CT_alloc_memory --;
+        }
     }
     else
     {
-        printf("__ERROR_FREE__ element non trouvé ou déjà libéré\n");
+        __CT_LOG("__ERROR_FREE__ element non trouvé ou déjà libéré\n");
     }
     free(ptr);
 }
@@ -367,6 +387,25 @@ void __CT_tri_alloc_lst()
     qsort(__CT_alloc_lst, __CT_alloc_memory_max, sizeof(__CT_TYP_MEMORY_DEBUG), __CT_tri_callback_alloc_lst);
 }
 
+/**
+ * /brief check is there is only static element in the list
+ * /return 1 if only static, 0 otherwise
+ * */
+short __CT_check_static_only()
+{
+    unsigned int inc = 0;
+    
+    for(inc = 0; inc < __CT_alloc_memory_max; inc++)
+    {
+        if(__CT_alloc_lst[inc].ptr!=NULL && __CT_alloc_lst[inc].isStatic == 0)
+        {
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
 #define __CT_TRACE_ALLOC() __CT_trace_alloc_lst()
 /** \brief fonction qui affiche le contenu de la liste d'allocation
  *  sous forme d'un tableau
@@ -414,26 +453,30 @@ void __CT_trace_alloc_lst()
         }
     }
 #endif // __MEMORY_DEBUG__
-    if(__CT_alloc_memory == 0)
+__CT_LOG("am:%d, check:%d\n",__CT_alloc_memory, __CT_check_static_only());
+    if(__CT_alloc_memory == 0 || (__CT_alloc_memory != 0 && __CT_check_static_only()== 1) )
     {
         __CT_LOG("/----------------------------------------------------\\\n");
         __CT_LOG("| AUCUNE ALLOCATION RESTANTE                         |\n");
         __CT_LOG("\\----------------------------------------------------/\n");
-        //printf("/----------------------------------------------------\\\n");
-        //printf("| AUCUNE ALLOCATION RESTANTE                         |\n");
-        //printf("\\----------------------------------------------------/\n");
     }
     else
     {
         ligne_prec = __CT_alloc_lst[0].ligne;
         strcpy(fichier_prec, __CT_alloc_lst[0].fichier);
-        printf("/------------------------------------------------------------------\\\n");
-        printf("|NB ALLOC|   CUMUL  |LIGNE|               FICHIER                  |\n");
-        printf("|------------------------------------------------------------------|\n");
+        __CT_LOG("/------------------------------------------------------------------\\\n");
+        __CT_LOG("|NB ALLOC|   CUMUL  |LIGNE|               FICHIER                  |\n");
+        __CT_LOG("|------------------------------------------------------------------|\n");
         inc=0;
         STOP=0;
         while(inc < __CT_alloc_memory_max && STOP == 0)
         {
+            //if current is static, then skip it
+            if(__CT_alloc_lst[inc].isStatic)
+            {
+                inc++;
+                continue;
+            }
             nbElem ++;
             totalNbElem++;
             cumul += __CT_alloc_lst[inc].taille;
@@ -446,7 +489,7 @@ void __CT_trace_alloc_lst()
             if( (inc + 1) == __CT_alloc_memory_max || __CT_alloc_lst[inc + 1].ligne != ligne_prec
                     || __CT_alloc_lst[inc + 1].ptr == NULL || strcmp(__CT_alloc_lst[inc + 1].fichier, fichier_prec))
             {
-                printf("|%8ld|%10ld|%5d|%40s|\n", nbElem, cumul, __CT_alloc_lst[inc].ligne, __CT_alloc_lst[inc].fichier);
+                __CT_LOG("|%8ld|%10ld|%5d|%40s|\n", nbElem, cumul, __CT_alloc_lst[inc].ligne, __CT_alloc_lst[inc].fichier);
                 cumul = 0;
                 nbElem = 0;
                 if((inc + 1) != __CT_alloc_memory_max && __CT_alloc_lst[inc + 1].ptr != NULL)
@@ -461,10 +504,9 @@ void __CT_trace_alloc_lst()
             }
             inc++;
         }
-        printf("|------------------------------------------------------------------|\n");
-        printf("|%8ld|%10ld|                                              |\n", totalNbElem, totalCumul);
-        printf("\\------------------------------------------------------------------/\n");
-        //printf("__MEMORY__ %ld elements pour %ld oct alloues\n", __alloc_memory, cumul);
+        __CT_LOG("|------------------------------------------------------------------|\n");
+        __CT_LOG("|%8ld|%10ld|                                              |\n", totalNbElem, totalCumul);
+        __CT_LOG("\\------------------------------------------------------------------/\n");
     }
 }
 
@@ -488,7 +530,7 @@ void __CT_sprintf_verif_ecrasement(char* tab, char* format, ...)
         retour++;
         if(retour>element->taille)
         {
-            printf("DEPASSEMENT/sprintf/%s:%d/size:%ld/sprintf size:%d\n", element->fichier, element->ligne, element->taille,retour);
+            __CT_LOG("DEPASSEMENT/sprintf/%s:%d/size:%ld/sprintf size:%d\n", element->fichier, element->ligne, element->taille,retour);
         }
         va_end(args);        
     }
@@ -513,7 +555,7 @@ void __CT_strcpy_verif_ecrasement(char* tab, const char* src)
     {
         if(size>element->taille)
         {
-            printf("DEPASSEMENT/strcpy/%s:%d/size:%ld/source size:%ld\n", element->fichier, element->ligne, element->taille, size);
+            __CT_LOG("DEPASSEMENT/strcpy/%s:%d/size:%ld/source size:%ld\n", element->fichier, element->ligne, element->taille, size);
         }       
     }
     strcpy(tab, src);
@@ -533,7 +575,7 @@ void __CT_memcpy_verif_ecrasement(void* tab, void* src, size_t size)
     {
         if(size>element->taille)
         {
-            printf("DEPASSEMENT dest/memcpy/%s:%d/size ptr:%ld/size:%d\n", element->fichier, element->ligne, element->taille, size);
+            __CT_LOG("DEPASSEMENT dest/memcpy/%s:%d/size ptr:%ld/size:%d\n", element->fichier, element->ligne, element->taille, size);
         }       
     }
     
@@ -543,7 +585,7 @@ void __CT_memcpy_verif_ecrasement(void* tab, void* src, size_t size)
     {
         if(size>element->taille)
         {
-            printf("DEPASSEMENT src/memcpy/%s:%d/size ptr:%ld/size:%ld\n", element->fichier, element->ligne, element->taille, size);
+            __CT_LOG("DEPASSEMENT src/memcpy/%s:%d/size ptr:%ld/size:%ld\n", element->fichier, element->ligne, element->taille, size);
         }       
     }
     memcpy(tab, src, size);
@@ -563,7 +605,7 @@ void __CT_memset_verif_ecrasement(void* tab, char car, size_t size)
     {
         if(size>element->taille)
         {
-            printf("DEPASSEMENT dest/memset/%s:%d/size ptr:%ld/size:%d\n", element->fichier, element->ligne, element->taille, size);
+            __CT_LOG("DEPASSEMENT dest/memset/%s:%d/size ptr:%ld/size:%d\n", element->fichier, element->ligne, element->taille, size);
         }       
     }
     memset(tab, car, size);
