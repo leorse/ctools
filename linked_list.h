@@ -1,30 +1,30 @@
 #ifndef LINKED_LIST_H_INCLUDED
 #define LINKED_LIST_H_INCLUDED
 
-typedef struct LBL_VOID
+typedef struct __CT_LBL_VOID
 {
-    struct LBL_VOID* suivant;
-    struct LBL_VOID* precedent;
-} TYP_VOID;
+    struct __CT_LBL_VOID* suivant;
+    struct __CT_LBL_VOID* precedent;
+} __CT_TYP_VOID;
 
 
-void* creerElement(size_t tailleElt, void* lst)
+void* __CT_creerElement(size_t tailleElt, void* lst)
 {
-    TYP_VOID* elt = NULL;
-    TYP_VOID* ptr = NULL;
+    __CT_TYP_VOID* elt = NULL;
+    __CT_TYP_VOID* ptr = NULL;
 
-    elt = (TYP_VOID*)__MALLOC(tailleElt);
+    elt = (__CT_TYP_VOID*)__CT_MALLOC(tailleElt);
     if(elt == NULL)
     {
         return NULL;
     }
     //elt->suivant
-    ptr = (TYP_VOID*)elt;
+    ptr = (__CT_TYP_VOID*)elt;
     ptr->suivant = NULL;
     if(lst != NULL)
     {
         //lst->suivant
-        ptr = (TYP_VOID*)lst;
+        ptr = (__CT_TYP_VOID*)lst;
         ptr->suivant = elt;
         //elt->precedent
         elt->precedent = lst;
@@ -39,22 +39,22 @@ void* creerElement(size_t tailleElt, void* lst)
 }
 
 
-void libererElements(void* premierElmt, size_t tailleElt)
+void __CT_libererElements(void* premierElmt, size_t tailleElt)
 {
-    TYP_VOID* ptr = NULL;
-    TYP_VOID* suiv = NULL;
+    __CT_TYP_VOID* ptr = NULL;
+    __CT_TYP_VOID* suiv = NULL;
 
     if(premierElmt == NULL)
     {
         return;
     }
 
-    ptr = (TYP_VOID*)premierElmt;
+    ptr = (__CT_TYP_VOID*)premierElmt;
 
     do
     {
         suiv = ptr->suivant;
-        __FREE(ptr);
+        __CT_FREE(ptr);
         ptr = suiv;
     }
     while(suiv != NULL);
