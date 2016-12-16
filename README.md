@@ -1,4 +1,7 @@
 # ctools #
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d8195f8e812e448a9c26da25f0471bcf)](https://www.codacy.com/app/damien-messner/ctools?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=leorse/ctools&amp;utm_campaign=badger)
+
 Some tools to make your C Programs more reliable and profilable.
 
 ## Development ##
